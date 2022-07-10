@@ -59,7 +59,8 @@
       become: true
 
     - name: deploy Docker Compose stack
-      shell:
+      docker_compose:
         project_src: /home/ubuntu/booksApp/
-        cmd: 'docker-compose -f docker-compose.prod.yml up -d'
+        files:
+        - docker-compose.prod.yml
       become: true
