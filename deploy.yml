@@ -26,23 +26,27 @@
       apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
         state: present
+      become: true
 
     - name: Add Docker Repository
       apt_repository:
         repo: deb https://download.docker.com/linux/ubuntu focal stable
         state: present
+      become: true
 
     - name: Update apt and install docker-ce
       apt:
         name: docker-ce
         state: latest
         update_cache: true
+      become: true
 
     - name: Install docker-compose
       apt:
         name: docker-compose
         state: latest
         update_cache: true
+      become: true
 
     - name: Install Docker Module for Python
       pip:
@@ -58,9 +62,18 @@
         force: yes
       become: true
 
+    - name: Stop all running containers
+      docker_compose:
+        project_src: /home/ubuntu/booksApp/
+        files:
+          - docker-compose.prod.yml
+        stopped: yes
+      become: true
+
     - name: deploy Docker Compose stack
       docker_compose:
         project_src: /home/ubuntu/booksApp/
         files:
         - docker-compose.prod.yml
+        build: yes
       become: true
