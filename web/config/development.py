@@ -1,9 +1,10 @@
+"""Development Config"""
 import datetime
 import os
 
 
-class DevelopmentConfig(object):
-    """Development Config"""
+class DevelopmentConfig:
+    """Development Configuration Class"""
     DEBUG = True
     TESTING = False
     SECRET_KEY = os.environ.get("SECRET_KEY") or 'sanket'

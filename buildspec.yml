@@ -20,5 +20,5 @@ phases:
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/booksapp:$CODEBUILD_BUILD_NUMBER
       - printf '[{"name":"%s","imageUri":"%s"}]' web $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/booksapp:latest > imagedefinitions.json
 
-  artifacts:
-    files: imagedefinitions.json
+artifacts:
+  files: imagedefinitions.json
