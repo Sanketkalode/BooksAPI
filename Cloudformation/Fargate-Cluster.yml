@@ -1,0 +1,242 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ECS Fargate template to launch flask App
+Parameters:
+  MongoDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group of MongoDB Host
+    Default: sg-0d13074b8ef662659
+
+  ServiceName:
+    Type: String
+    Default: BooksAppApi
+    Description: Books API
+
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC id for VPC peering.
+    Default: "vpc-0c3b06e36f4ef79be"
+
+  SubnetOne:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public Subnet for ALB
+    Default: subnet-01e1d787b442b592d
+
+  SubnetTwo:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public Subnet for ALB
+    Default: subnet-094c1659fdedce144
+
+  WebContainerName:
+    Type: String
+    Default: web
+    Description: Server container Name
+
+  WebContainerPort:
+    Type: Number
+    Default: 5000
+    Description: Application port number
+
+  DesiredCount:
+    Type: Number
+    Default: 1
+    Description: Number of tasks to run
+
+  Path:
+    Type: String
+    Default: "*"
+    Description: A path on the public load balancer that this service
+      should be connected to. Use * to send all the load balancer traffic to this service.
+
+Mappings:
+  AZRegions:
+    us-east-1:
+      AZs: ["a", "b"]
+
+Resources:
+  # Subnets, security groups and loadbalancer resources
+
+  FargateContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to fargate containers
+      VpcId: !Ref "VPC"
+
+  ECSSecurityGroupIngressFromPublicALB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from public application
+      GroupId: !Ref "FargateContainerSecurityGroup"
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref PublicLoadBalancerSG
+
+  ECSSecurityGroupIngressFromSelf:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from other containers in the same security group
+      GroupId: !Ref "FargateContainerSecurityGroup"
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref "FargateContainerSecurityGroup"
+
+  PublicLoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the public facing load balancer
+      VpcId: !Ref "VPC"
+      SecurityGroupIngress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: -1
+
+  PublicLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "30"
+      Subnets:
+        - !Ref SubnetOne
+        - !Ref SubnetTwo
+      SecurityGroups:
+        - !Ref "PublicLoadBalancerSG"
+      Type: application
+
+  PublicLoadBalancerListner:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - PublicLoadBalancer
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref "TargetGroup"
+          Type: "forward"
+      LoadBalancerArn: !Ref "PublicLoadBalancer"
+      Port: 80
+      Protocol: HTTP
+
+  MongoDBSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref "MongoDBSecurityGroup"
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref "FargateContainerSecurityGroup"
+
+  FargateContainerSGIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref "FargateContainerSecurityGroup"
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref MongoDBSecurityGroup
+
+  LoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref "TargetGroup"
+          Type: "forward"
+      Conditions:
+        - Field: path-pattern
+          Values: [!Ref "Path"]
+      ListenerArn: !Ref "PublicLoadBalancerListner"
+      Priority: 1
+
+  # Fargate Resources
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip
+      Name: !Ref "WebContainerName"
+      Port: !Ref "WebContainerPort"
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref "VPC"
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref "ServiceName"
+      Cpu: 512
+      Memory: 1024
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref "ECSTaskExecutionRole"
+      ContainerDefinitions:
+        - Name: !Ref "WebContainerName"
+          Cpu: 256
+          Memory: 512
+          Image: "089409322179.dkr.ecr.us-east-1.amazonaws.com/booksapp:latest"
+          PortMappings:
+            - ContainerPort: !Ref "WebContainerPort"
+          Environment:
+            - Name: MONGODB_DATABASE
+              Value: BooksDB
+            - Name: MONGODB_HOSTNAME
+              Value: 172.31.82.194
+            - Name: MONGODB_PORT
+              Value: 27017
+            - Name: FLASK_ENV
+              Value: production
+
+  FargateService:
+    Type: AWS::ECS::Service
+    DependsOn: LoadBalancerRule
+    Properties:
+      Cluster: !Ref "ECSCluster"
+      ServiceName: !Ref "ServiceName"
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: !Ref "DesiredCount"
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref "FargateContainerSecurityGroup"
+          Subnets:
+            - !Ref "SubnetOne"
+            - !Ref "SubnetTwo"
+      TaskDefinition: !Ref "TaskDefinition"
+      LoadBalancers:
+        - ContainerName: !Ref "WebContainerName"
+          ContainerPort: !Ref "WebContainerPort"
+          TargetGroupArn: !Ref "TargetGroup"
+
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Path: /
+      Policies:
+        - PolicyName: AmazonECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+
+Outputs:
+  ExternalUrl:
+    Description: The url of External Load Balancer
+    Value: !Join ["", ["http://", !GetAtt "PublicLoadBalancer.DNSName"]]
+
