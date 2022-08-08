@@ -209,8 +209,15 @@ Resources:
                 ParameterOverrides: !Sub |
                   {
                     "ImageURI" : { "Fn::GetParam" : ["build-output-artifacts", "imageDetail.json", "ImageURI"] },
-                    "Stage":  "${Stage}",
-                    "ContainerPort": "${ContainerPort}"
+                    "MongoDBSecurityGroup" : "${MongoDBSecurityGroup}",
+                    "ServiceName" : "${ServiceName}",
+                    "VPC":"${VPC}",
+                    "SubnetOne":"${SubnetOne}",
+                    "SubnetTwo":"${SubnetTwo}",
+                    "WebContainerName":"${WebContainerName}",
+                    "WebContainerPort": "${WebContainerPort}",
+                    "DesiredCount":"${DesiredCount}",
+                    "Path":"${Path}"
                   }
                 RoleArn: 
                   Fn::GetAtt: [ CloudformationExecutionRole, Arn ]

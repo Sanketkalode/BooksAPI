@@ -48,6 +48,9 @@ Parameters:
     Description: A path on the public load balancer that this service
       should be connected to. Use * to send all the load balancer traffic to this service.
 
+  ImageURI:
+    Type: String
+
 Mappings:
   AZRegions:
     us-east-1:
@@ -173,7 +176,7 @@ Resources:
         - Name: !Ref "WebContainerName"
           Cpu: 256
           Memory: 512
-          Image: "089409322179.dkr.ecr.us-east-1.amazonaws.com/booksapp:latest"
+          Image: !Ref ImageURI
           PortMappings:
             - ContainerPort: !Ref "WebContainerPort"
           Environment:
