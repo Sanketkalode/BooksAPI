@@ -18,9 +18,51 @@ Parameters:
   GithubOAuthToken:
     Type: String
     Default: <GITHUB ACCESS TOKEN>
-  ContainerPort:
+  MongoDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group of MongoDB Host
+    Default: sg-0d13074b8ef662659
+
+  ServiceName:
+    Type: String
+    Default: BooksAppApi
+    Description: Books API
+
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC id for VPC peering.
+    Default: "vpc-0c3b06e36f4ef79be"
+
+  SubnetOne:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public Subnet for ALB
+    Default: subnet-01e1d787b442b592d
+
+  SubnetTwo:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public Subnet for ALB
+    Default: subnet-094c1659fdedce144
+
+  WebContainerName:
+    Type: String
+    Default: web
+    Description: Server container Name
+
+  WebContainerPort:
     Type: Number
     Default: 5000
+    Description: Application port number
+
+  DesiredCount:
+    Type: Number
+    Default: 1
+    Description: Number of tasks to run
+
+  Path:
+    Type: String
+    Default: "*"
+    Description: A path on the public load balancer that this service
+      should be connected to. Use * to send all the load balancer traffic to this service.
 
 
 Resources:
