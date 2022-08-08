@@ -6,5 +6,6 @@ views = Blueprint('views', __name__)
 @views.route('/')
 def home():
     return jsonify({
-        'message': "Welcome to book.com v.2"
+        'message': "Welcome to book.com",
+        'version': "2"
     }), 200
