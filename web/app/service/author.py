@@ -1,3 +1,4 @@
+"""Author Service module"""
 from app.models.author import Author
 from app.service.books import getBook
 
@@ -6,8 +7,7 @@ def getAuthorName(id):
     auth = Author.objects(id=id).first()
     if auth:
         return auth.to_json()
-    else:
-        return {'Message': "Author not Found"}
+    return {'Message': "Author not Found"}
 
 
 def getBooksName(id):

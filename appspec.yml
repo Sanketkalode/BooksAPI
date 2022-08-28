@@ -1,0 +1,9 @@
+version: 0.0
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: "arn:aws:ecs:us-east-1:089409322179:task-definition/BooksAppApi:33"
+        LoadBalancerInfo:
+          ContainerName: "web"
+          ContainerPort: 5000

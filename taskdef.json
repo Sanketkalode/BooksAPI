@@ -1,70 +1,35 @@
 {
-  "family": "BooksAPPTaskDefination",
-  "containerDefinations": [
-    {
-      "name": "web",
-      "essential": true,
-      "image":"sanketkalode/bookapi",
-      "cpu": 256,
-      "memoryReservation": 512,
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "insights",
-          "awslogs-region": "eu-west-1",
-          "awslogs-stream-prefix": "queryapi"
+    "containerDefinitions": [
+        {
+            "essential": true,
+            "image": "sanketkalode/bookapi:latest",
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/booksApp",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "name": "web",
+            "portMappings": [
+                {
+                    "containerPort": 5000,
+                    "hostPort": 5000,
+                    "protocol": "tcp"
+                }
+            ]
         }
-      },
-      "portMappings": [
-        {
-          "hostPort": 5000,
-          "containerPort": 5000,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        {
-          "name": "MONGODB_DATABASE",
-          "value": "BooksDB"
-        },
-        {
-          "name": "MONGODB_HOSTNAME",
-          "value": "172.31.82.194"
-        },
-        {
-          "name": "MONGODB_PORT",
-          "value": 27017
-        },
-        {
-          "name": "FLASK_ENV",
-          "value": "production"
-        },
-        {
-          "name": "Container",
-          "value": "web"
-        }
-      ],
-      "links": [
-        "server"
-      ]
+    ],
+    "cpu": "256",
+    "executionRoleArn": "",
+    "family": "fargate-task-definition",
+    "memory": 512,
+    "networkMode": "awsvpc",
+    "runtimePlatform": {
+        "operatingSystemFamily": "LINUX"
     },
-    {
-      "name": "server",
-      "image": "sanketkalode/web-server",
-      "cpu": 128,
-      "memoryReservation": 256,
-      "portMappings": [
-        {
-          "hostPort": 80,
-          "containerPort": 80,
-          "protocol": "tcp"
-        }
-      ],
-      "essential": true,
-      "links": [
-        "web"
-      ]
-    }
-  ],
-  "networkMode": "bridge"
+    "requiresCompatibilities": [
+        "FARGATE"
+    ]
 }
