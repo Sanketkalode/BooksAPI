@@ -1,4 +1,6 @@
 """Flask app module to create and initalize flask app"""
+import logging
+
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -11,6 +13,11 @@ from app.controller.user import user_blueprint
 
 db = MongoEngine()
 jwt = JWTManager()
+logging.basicConfig(
+    filename='Systemlog.log',
+    level=logging.INFO,
+    format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s'
+)
 
 
 def create_app(config):
